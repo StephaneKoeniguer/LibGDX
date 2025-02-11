@@ -9,7 +9,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
@@ -25,6 +27,8 @@ public class Main implements ApplicationListener {
     FitViewport viewport;
     Sprite bucketSprite;
     Vector2 touchPos;
+    Array<Sprite> dropSprites;
+    float dropTimer;
 
 
 
@@ -41,6 +45,23 @@ public class Main implements ApplicationListener {
         bucketSprite = new Sprite(bucketTexture); // Initialize the sprite based on the texture
         bucketSprite.setSize(1, 1); // Define the size of the sprite
         touchPos = new Vector2();
+        dropSprites = new Array<>();
+
+    }
+
+    private void createDroplet() {
+        // create local variables for convenience
+        float dropWidth = 1;
+        float dropHeight = 1;
+        float worldWidth = viewport.getWorldWidth();
+        float worldHeight = viewport.getWorldHeight();
+
+        // create the drop sprite
+        Sprite dropSprite = new Sprite(dropTexture);
+        dropSprite.setSize(dropWidth, dropHeight);
+        dropSprite.setX(MathUtils.random(0f, worldWidth - dropWidth)); // Randomize the drop's x position
+        dropSprite.setY(worldHeight);
+        dropSprites.add(dropSprite); // Add it to the list
     }
 
     @Override
@@ -91,6 +112,29 @@ public class Main implements ApplicationListener {
     }
 
     private void logic() {
+        // Store the worldWidth and worldHeight as local variables for brevity
+        float worldWidth = viewport.getWorldWidth();
+        float worldHeight = viewport.getWorldHeight();
+
+        // Store the bucket size for brevity
+        float bucketWidth = bucketSprite.getWidth();
+        float bucketHeight = bucketSprite.getHeight();
+
+        // Clamp x to values between 0 and worldWidth
+        bucketSprite.setX(MathUtils.clamp(bucketSprite.getX(), 0, worldWidth - bucketWidth));
+
+        float delta = Gdx.graphics.getDeltaTime(); // retrieve the current delta
+
+        // loop through each drop
+        for (Sprite dropSprite : dropSprites) {
+            dropSprite.translateY(-2f * delta); // move the drop downward every frame
+        }
+
+        dropTimer += delta; // Adds the current delta to the timer
+        if (dropTimer > 1f) { // Check if it has been more than a second
+            dropTimer = 0; // Reset the timer
+            createDroplet(); // Create the droplet
+        }
 
     }
 
@@ -107,6 +151,10 @@ public class Main implements ApplicationListener {
         float worldHeight = viewport.getWorldHeight();
         spriteBatch.draw(backgroundTexture, 0, 0, worldWidth, worldHeight); // draw the background
         bucketSprite.draw(spriteBatch); // Sprites have their own draw method
+        // draw each sprite
+        for (Sprite dropSprite : dropSprites) {
+            dropSprite.draw(spriteBatch);
+        }
 
         spriteBatch.end();
     }
