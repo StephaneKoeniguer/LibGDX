@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -29,6 +30,8 @@ public class Main implements ApplicationListener {
     Vector2 touchPos;
     Array<Sprite> dropSprites;
     float dropTimer;
+    Rectangle bucketRectangle;
+    Rectangle dropRectangle;
 
 
 
@@ -46,6 +49,11 @@ public class Main implements ApplicationListener {
         bucketSprite.setSize(1, 1); // Define the size of the sprite
         touchPos = new Vector2();
         dropSprites = new Array<>();
+        bucketRectangle = new Rectangle();
+        dropRectangle = new Rectangle();
+        music.setLooping(true);
+        music.setVolume(.5f);
+        music.play();
 
     }
 
@@ -122,12 +130,27 @@ public class Main implements ApplicationListener {
 
         // Clamp x to values between 0 and worldWidth
         bucketSprite.setX(MathUtils.clamp(bucketSprite.getX(), 0, worldWidth - bucketWidth));
+        // Apply the bucket position and size to the bucketRectangle
+        bucketRectangle.set(bucketSprite.getX(), bucketSprite.getY(), bucketWidth, bucketHeight);
 
         float delta = Gdx.graphics.getDeltaTime(); // retrieve the current delta
 
-        // loop through each drop
-        for (Sprite dropSprite : dropSprites) {
-            dropSprite.translateY(-2f * delta); // move the drop downward every frame
+        // Loop through the sprites backwards to prevent out of bounds errors
+        for (int i = dropSprites.size - 1; i >= 0; i--) {
+            Sprite dropSprite = dropSprites.get(i); // Get the sprite from the list
+            float dropWidth = dropSprite.getWidth();
+            float dropHeight = dropSprite.getHeight();
+
+            dropSprite.translateY(-2f * delta);
+            // Apply the drop position and size to the dropRectangle
+            dropRectangle.set(dropSprite.getX(), dropSprite.getY(), dropWidth, dropHeight);
+
+            // if the top of the drop goes below the bottom of the view, remove it
+            if (dropSprite.getY() < -dropHeight) dropSprites.removeIndex(i);
+            else if (bucketRectangle.overlaps(dropRectangle)) { // Check if the bucket overlaps the drop
+                dropSprites.removeIndex(i); // Remove the drop
+                dropSound.play(); // Play the sound
+            }
         }
 
         dropTimer += delta; // Adds the current delta to the timer
